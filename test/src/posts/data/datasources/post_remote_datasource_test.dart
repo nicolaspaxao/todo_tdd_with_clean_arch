@@ -1,22 +1,23 @@
 import 'dart:convert';
 
-import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
 import 'package:mocktail/mocktail.dart';
 import 'package:todo_tdd_clen_arch/core/errors/exceptions.dart';
 import 'package:todo_tdd_clen_arch/core/utils/constants.dart';
 import 'package:todo_tdd_clen_arch/src/posts/data/datasources/post_remote_datasource.dart';
 import 'package:todo_tdd_clen_arch/src/posts/data/models/post.dart';
 
-class MockDioClient extends Mock implements Dio {}
+class MockClient extends Mock implements http.Client {}
 
 void main() {
-  late Dio mockDio;
+  late http.Client client;
   late PostRemoteDataSourceImpl dataSource;
 
   setUp(() {
-    mockDio = MockDioClient();
-    dataSource = PostRemoteDataSourceImpl(dio: mockDio);
+    client = MockClient();
+    dataSource = PostRemoteDataSourceImpl(client: client);
+    registerFallbackValue(Uri());
   });
 
   const tBody = 'tBody';
@@ -29,12 +30,8 @@ void main() {
     test(
       'should return a list of PostModel when the call to Dio is successful',
       () async {
-        when(() => mockDio.get(any())).thenAnswer(
-          (_) async => Response(
-            data: tResponse,
-            statusCode: 200,
-            requestOptions: RequestOptions(),
-          ),
+        when(() => client.get(any())).thenAnswer(
+          (_) async => http.Response(jsonEncode(tResponse), 200),
         );
 
         final result = await dataSource.getPosts();
@@ -42,27 +39,23 @@ void main() {
         expect(result, isA<List<PostModel>>());
         expect(result.length, equals(1));
 
-        verify(() => mockDio.get('$kBaseUrl/posts')).called(1);
-        verifyNoMoreInteractions(mockDio);
+        verify(() => client.get(Uri.parse('$kBaseUrl/posts'))).called(1);
+        verifyNoMoreInteractions(client);
       },
     );
 
     test(
       'should throw an ApiException when the call to Dio is unsuccessful',
       () async {
-        when(() => mockDio.get(any())).thenAnswer(
-          (_) async => Response(
-            data: null,
-            statusCode: 404,
-            requestOptions: RequestOptions(),
-          ),
+        when(() => client.get(any())).thenAnswer(
+          (_) async => http.Response('Not Found', 404),
         );
 
         final call = dataSource.getPosts;
 
         expect(() => call(), throwsA(isA<ApiException>()));
-        verify(() => mockDio.get('$kBaseUrl/posts')).called(1);
-        verifyNoMoreInteractions(mockDio);
+        verify(() => client.get(Uri.parse('$kBaseUrl/posts'))).called(1);
+        verifyNoMoreInteractions(client);
       },
     );
   });
@@ -71,17 +64,15 @@ void main() {
     test(
       'should perform a POST request with the given parameters',
       () async {
-        when(() => mockDio.post(
-              any(),
-              data: any(named: 'data'),
-              options: Options(
-                headers: {'Content-type': 'application/json; charset=UTF-8'},
-              ),
-            )).thenAnswer((_) async => Response(
-              data: null,
-              statusCode: 200,
-              requestOptions: RequestOptions(),
-            ));
+        when(
+          () => client.post(
+            any(),
+            body: any(named: 'body'),
+            headers: {'Content-type': 'application/json; charset=UTF-8'},
+          ),
+        ).thenAnswer(
+          (_) async => http.Response('Sucess', 200),
+        );
 
         await dataSource.createPost(
           title: tTitle,
@@ -90,48 +81,51 @@ void main() {
         );
 
         verify(
-          () => mockDio.post(
-            '$kBaseUrl/posts',
-            data: jsonEncode(
+          () => client.post(
+            Uri.parse('$kBaseUrl/posts'),
+            body: jsonEncode(
               {'title': tTitle, 'body': tBody, 'userId': tUserId},
             ),
-            options: Options(
-              headers: {'Content-type': 'application/json; charset=UTF-8'},
-            ),
+            headers: {'Content-type': 'application/json; charset=UTF-8'},
           ),
         ).called(1);
 
-        verifyNoMoreInteractions(mockDio);
+        verifyNoMoreInteractions(client);
       },
     );
 
     test(
       'should throw an ApiException when the call to Dio is unsuccessful',
       () async {
-        when(() => mockDio.post(
+        when(() => client.post(
               any(),
-              data: any(named: 'data'),
-              options: Options(
-                  headers: {'Content-type': 'application/json; charset=UTF-8'}),
-            )).thenAnswer((_) async => Response(
-              data: null,
-              statusCode: 404,
-              statusMessage: 'Error',
-              requestOptions: RequestOptions(),
-            ));
-
-        await dataSource.createPost(
-            title: tTitle, body: tBody, userId: tUserId);
-
-        verify(
-          () => mockDio.post(
-            '$kBaseUrl/posts',
-            data: {'title': tTitle, 'body': tBody, 'userId': tUserId},
-            options: Options(
+              body: any(named: 'body'),
               headers: {'Content-type': 'application/json; charset=UTF-8'},
+            )).thenAnswer((_) async => http.Response('Not Found', 404));
+
+        final call = dataSource.createPost;
+
+        expect(
+          () => call(title: tTitle, body: tBody, userId: tUserId),
+          throwsA(
+            const ApiException(
+              message: 'Not Found',
+              statusCode: 404,
             ),
           ),
+        );
+
+        verify(
+          () => client.post(
+            Uri.parse('$kBaseUrl/posts'),
+            body: jsonEncode(
+              {'title': tTitle, 'body': tBody, 'userId': tUserId},
+            ),
+            headers: {'Content-type': 'application/json; charset=UTF-8'},
+          ),
         ).called(1);
+
+        verifyNoMoreInteractions(client);
       },
     );
   });
