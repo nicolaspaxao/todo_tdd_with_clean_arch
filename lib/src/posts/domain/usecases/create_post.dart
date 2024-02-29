@@ -1,3 +1,6 @@
+// ignore_for_file: public_member_api_docs, sort_constructors_first
+import 'dart:convert';
+
 import 'package:equatable/equatable.dart';
 
 import 'package:todo_tdd_clen_arch/core/usecases/usecases.dart';
@@ -32,4 +35,20 @@ class CreatePostParams extends Equatable {
 
   @override
   List<Object> get props => [title, body, userId];
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'title': title,
+      'body': body,
+      'userId': userId,
+    };
+  }
+
+  factory CreatePostParams.fromJson(Map<String, dynamic> map) {
+    return CreatePostParams(
+      title: map['title'] as String,
+      body: map['body'] as String,
+      userId: map['userId'] as int,
+    );
+  }
 }
