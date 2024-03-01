@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:todo_tdd_clen_arch/core/services/injection_container.dart';
 import 'package:todo_tdd_clen_arch/src/posts/presentation/bloc/post_bloc.dart';
 import 'package:todo_tdd_clen_arch/src/posts/presentation/cubit/post_cubit.dart';
+import 'package:todo_tdd_clen_arch/src/posts/presentation/views/home_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,12 +26,18 @@ class MainApp extends StatelessWidget {
           create: (BuildContext context) => sl<PostCubit>(),
         ),
       ],
-      child: const MaterialApp(
-        home: Scaffold(
-          body: Center(
-            child: Text('Hello World!'),
+      child: MaterialApp(
+        theme: ThemeData(
+          visualDensity: VisualDensity.adaptivePlatformDensity,
+          useMaterial3: true,
+          inputDecorationTheme: const InputDecorationTheme(
+            floatingLabelAlignment: FloatingLabelAlignment.start,
+            alignLabelWithHint: true,
+            focusedBorder: OutlineInputBorder(),
+            enabledBorder: OutlineInputBorder(),
           ),
         ),
+        home: const HomeScreen(),
       ),
     );
   }
