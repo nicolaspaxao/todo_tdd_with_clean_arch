@@ -1,8 +1,4 @@
-// ignore_for_file: public_member_api_docs, sort_constructors_first
-import 'dart:convert';
-
 import 'package:equatable/equatable.dart';
-
 import 'package:todo_tdd_clen_arch/core/usecases/usecases.dart';
 import 'package:todo_tdd_clen_arch/core/utils/typedef.dart';
 import 'package:todo_tdd_clen_arch/src/posts/domain/repos/post_repo.dart';
